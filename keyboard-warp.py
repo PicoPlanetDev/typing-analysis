@@ -1,6 +1,4 @@
 import copy
-from turtle import position
-from charset_normalizer import detect
 import cv2
 import numpy as np
 import HandTrackingModule as htm
