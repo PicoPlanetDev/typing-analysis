@@ -4,11 +4,12 @@ import numpy as np
 import HandTrackingModule as htm
 import pickle
 import keyboard
+import json
 
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-cap. set(cv2.CAP_PROP_FPS, 60)
+cap.set(cv2.CAP_PROP_FPS, 60)
 
 def collect_points():
     """Collect corner points of the keyboard in left to right order,
@@ -225,38 +226,39 @@ class key_detection():
         return img
 
     def init_data(self):
-        self.finger_keys = []
-        #TODO: Convert this loop to a comprehension
-        for hand in range(2):
-            self.finger_keys.append([])
-            for finger in range(0,5):
-                self.finger_keys[hand].append([])
+        # self.finger_keys = []
+        # #TODO: Convert this loop to a comprehension
+        # for hand in range(2):
+        #     self.finger_keys.append([])
+        #     for finger in range(0,5):
+        #         self.finger_keys[hand].append([])
         
-        self.key_fingers = []
-        for i in range(28):
-            self.key_fingers.append([])
+        # self.key_fingers = []
+        # for i in range(28):
+        #     self.key_fingers.append([])
+        self.data = []
 
     def collect_data(self, hand_id, finger_id, pressed_key):
-        self.finger_keys[hand_id][finger_id].append(pressed_key)
-        if pressed_key == "space":
-            self.key_fingers[27].append([hand_id,finger_id])
-        self.key_fingers[convert_letter_to_number(pressed_key)].append([hand_id,finger_id])
+        # self.finger_keys[hand_id][finger_id].append(pressed_key)
+        # if pressed_key == "space":
+        #     self.key_fingers[27].append([hand_id,finger_id])
+        # else:
+        #     self.key_fingers[convert_letter_to_number(pressed_key)].append([hand_id,finger_id])
+        self.data.append([hand_id, finger_id, pressed_key])
 
     def on_key_pressed(self, event):
         pressed_key = event.name
         fingers_keys = self.get_fingers_keys()
-        # index = [finger for finger,key_data in enumerate(fingers_keys) \
-        #     for key in key_data if key==pressed_key]
         indexes = [finger for finger,key_data in enumerate(fingers_keys) if key_data[2]==pressed_key]
-        # for finger,key_data in enumerate(fingers_keys):
-        #     if key_data[2] == pressed_key:
-        #         index = finger
-        #         break
         for index in indexes:
             finger_id = fingers_keys[index][1]
             hand_id = fingers_keys[index][0]
             self.collect_data(hand_id, finger_id, pressed_key)
             print(hand_id, finger_id, pressed_key)
+    
+    def write_data(self):
+        with open('data.json', 'w') as json_file:
+            json.dump(self.data, json_file)
 
 def remove_duplicates(data):
     data_copy = copy.deepcopy(data)
@@ -295,8 +297,10 @@ def interactive_interpret_data(finger_keys, key_fingers):
         while True:
             user_input = input()
             if user_input == 'exit': break
-            try:
+            try: 
                 key = user_input
+                if key == 'space':
+                    print(key_fingers[27])
                 print(key_fingers[convert_letter_to_number(key)])
             except:
                 print("Invalid something")
@@ -329,12 +333,12 @@ def main(run_calibration=False):
         img = detection.draw_fingers_debug(img)
 
         flipped = cv2.flip(img, -1) # Flip the image for display
-
         cv2.imshow("main", flipped)
+
         keyboard_input = cv2.waitKey(1)
         if keyboard_input == 27:
             cv2.destroyWindow("main")
-            interactive_interpret_data(detection.finger_keys, detection.key_fingers)
+            detection.write_data()
             break
         if keyboard_input == 99:
             cv2.destroyWindow("main")
